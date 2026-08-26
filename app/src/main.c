@@ -1,72 +1,60 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(demo, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(l2_sync, LOG_LEVEL_INF);
 
-#define STACK_SIZE 1024
+#define THREAD_STACK  1024
+#define WORKER_PRIO   5
+#define STEPS_EACH    1000000
 
-#define PRIO_HIGH    3
-#define PRIO_MEDIUM  5
-#define PRIO_LOW     7
-#define PRIO_COOP   (-1)
+static volatile uint32_t shared_count;
+static struct k_sem workers_done;
+static K_MUTEX_DEFINE(shared_lock);
 
-void t_high_fn(void *p1, void *p2, void *p3)
+static void inc_shared(void *p1, void *p2, void *p3)
 {
-    LOG_INF("[HIGH] started");
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
 
-    for (int i = 0; i < 10; i++) {
-        LOG_INF("[HIGH] step %d  tick=%u", i, k_uptime_get_32());
-        k_msleep(100);
-    }
+	const char *who = k_thread_name_get(k_current_get());
 
-    LOG_INF("[HIGH] done");
+	for (int n = 0; n < STEPS_EACH; n++) {
+		k_mutex_lock(&shared_lock, K_FOREVER);
+		shared_count++;
+		k_mutex_unlock(&shared_lock);
+	}
+
+	LOG_INF("thread %s done", who);
+	k_sem_give(&workers_done);
 }
 
-void t_medium_fn(void *p1, void *p2, void *p3)
-{
-    LOG_INF("[MEDIUM] started");
-
-    for (int i = 0; i < 10; i++) {
-        LOG_INF("[MEDIUM] step %d  tick=%u", i, k_uptime_get_32());
-        k_msleep(200);
-    }
-}
-
-void t_low_fn(void *p1, void *p2, void *p3)
-{
-    LOG_INF("[LOW] started");
-
-    for (int i = 0; i < 10; i++) {
-        LOG_INF("[LOW] step %d  tick=%u", i, k_uptime_get_32());
-
-        k_msleep(300);
-    }
-
-    LOG_INF("[LOW] done");
-}
-
-void t_coop_fn(void *p1, void *p2, void *p3)
-{
-    LOG_INF("[COOP] starting - 5 busy steps, no yield yet");
-    for (int i = 0; i < 5; i++) {
-        k_busy_wait(40000);  /* quema CPU; no es sleep */
-        LOG_INF("[COOP] busy %d/5  tick=%u", i + 1, k_uptime_get_32());
-    }
-    LOG_INF("[COOP] yielding");
-    k_yield();
-    LOG_INF("[COOP] done");
-}
-
-K_THREAD_DEFINE(t_high, STACK_SIZE, t_high_fn, NULL, NULL, NULL, PRIO_HIGH, 0, 0);
-K_THREAD_DEFINE(t_medium, STACK_SIZE, t_medium_fn, NULL, NULL, NULL, PRIO_MEDIUM, 0, 0);
-K_THREAD_DEFINE(t_low,  STACK_SIZE, t_low_fn,  NULL, NULL, NULL, PRIO_LOW,  0, 0);
-K_THREAD_DEFINE(t_coop, STACK_SIZE, t_coop_fn, NULL, NULL, NULL, PRIO_COOP, 0, 0);
+K_THREAD_DEFINE(inc_a, THREAD_STACK, inc_shared, NULL, NULL, NULL,
+		WORKER_PRIO, 0, 0);
+K_THREAD_DEFINE(inc_b, THREAD_STACK, inc_shared, NULL, NULL, NULL,
+		WORKER_PRIO, 0, 0);
 
 int main(void)
 {
-    LOG_INF("=== L1 Task 1: Scheduling Competition ===");
-    LOG_INF("HIGH prio=%d  MEDIUM prio=%d  LOW prio=%d",
-            PRIO_HIGH, PRIO_MEDIUM, PRIO_LOW);
-    return 0;
-}
+	const uint32_t expected = STEPS_EACH * 2U;
+	int64_t t0 = k_uptime_get();
 
+	k_sem_init(&workers_done, 0, 2);
+
+	LOG_INF("L2 task1: two workers, shared counter, mutex");
+	LOG_INF("expect %u", expected);
+
+	k_sem_take(&workers_done, K_FOREVER);
+	k_sem_take(&workers_done, K_FOREVER);
+
+	LOG_INF("got %u", shared_count);
+
+	if (shared_count == expected) {
+		LOG_WRN("count matches (no lost updates this run)");
+	} else {
+		LOG_ERR("lost %u updates", expected - shared_count);
+	}
+
+	LOG_INF("elapsed %lld ms", k_uptime_delta(&t0));
+	return 0;
+}
