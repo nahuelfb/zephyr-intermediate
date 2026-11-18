@@ -1,1 +1,9 @@
 source "Kconfig.zephyr"
+
+config APP_USE_MUTEX
+	bool "Protect shared_count with a mutex"
+	default y
+	help
+	  When enabled, workers lock shared_lock around the shared_count
+	  update. When disabled, the read-modify-write is left unprotected
+	  so lost updates can be observed under preemption.
