@@ -1,0 +1,16 @@
+[21:00:00.500000000] (+0.000000000) named_event: { name = "event_ready", arg0 = 0, arg1 = 0 }
+[21:00:00.500000000] (+0.000000000) thread_switched_out: { thread_id = 134629184, name = "idle" }
+[21:00:00.500000000] (+0.000000000) thread_switched_in: { thread_id = 134625024, name = "control" }
+[21:00:00.500000000] (+0.000000000) msgq_get_exit: { id = 134624656, timeout = 4294957296, ret = 0 }
+[21:00:00.500000000] (+0.000000000) named_event: { name = "event_done", arg0 = 0, arg1 = 0 }
+[21:00:00.500000000] (+0.000000000) msgq_get_enter: { id = 134624656, timeout = 4294957296 }
+[21:00:00.500000000] (+0.000000000) msgq_get_blocking: { id = 134624656, timeout = 4294957296 }
+[21:00:00.500000000] (+0.000000000) thread_sched_pend: { thread_id = 134625024, name = "control" }
+[21:00:00.500000000] (+0.000000000) thread_switched_out: { thread_id = 134625024, name = "control" }
+[21:00:00.500000000] (+0.000000000) thread_switched_in: { thread_id = 134624864, name = "maintenance" }
+[21:00:00.500000000] (+0.000000000) semaphore_take_exit: { id = 134624720, timeout = 4294957296, ret = 0 }
+[21:00:00.500000000] (+0.000000000) thread_busy_wait_enter: { usec_to_wait = 45000 }
+[21:00:00.545000000] (+0.005000000) thread_busy_wait_exit: { usec_to_wait = 45000 }
+[21:00:00.545000000] (+0.000000000) semaphore_take_enter: { id = 134624720, timeout = 4294957296 }
+[21:00:00.545000000] (+0.000000000) semaphore_take_blocking: { id = 134624720, timeout = 4294957296 }
+[21:00:00.545000000] (+0.000000000) thread_sched_pend: { thread_id = 134624864, name = "maintenance" }

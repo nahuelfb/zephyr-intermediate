@@ -1,0 +1,46 @@
+# Kernel shell snapshot during baseline run
+# (original priorities: maintenance=4, control=7)
+# Connected via: screen /dev/pts/<N> while ./zephyr.exe was running
+# Commands: kernel thread stacks ; kernel thread list
+
+uart:~$ kernel thread stacks
+0x8063660 maintenance                      (real size 2048):    unused 2024     usage   24 / 2048 ( 1 %)
+0x8063700 control                          (real size 2048):    unused 2024     usage   24 / 2048 ( 1 %)
+0x80640c0 shell_uart                       (real size 2048):    unused 2024     usage   24 / 2048 ( 1 %)
+0x80637c0 logging                          (real size  768):    unused  744     usage   24 /  768 ( 3 %)
+0x8064740 idle                             (real size  256):    unused  232     usage   24 /  256 ( 9 %)
+0x80667e0 IRQ 00                           (real size 2048):    unused    0     usage 2048 / 2048 (100 %)
+
+uart:~$ kernel thread list
+Scheduler: 0 since last call
+Threads:
+ 0x8063660 maintenance
+        options: 0x0, priority: 4 timeout: 0
+        state: pending, entry: 0x8049c55
+        stack size 2048, unused 2024, usage 24 / 2048 (1 %)
+
+ 0x8063700 control
+        options: 0x0, priority: 7 timeout: 0
+        state: pending, entry: 0x8049c7b
+        stack size 2048, unused 2024, usage 24 / 2048 (1 %)
+
+*0x80640c0 shell_uart
+        options: 0x0, priority: 14 timeout: 0
+        state: queued, entry: 0x805194c
+        stack size 2048, unused 2024, usage 24 / 2048 (1 %)
+
+ 0x80637c0 logging
+        options: 0x0, priority: 14 timeout: 0
+        state: pending, entry: 0x804c7c0
+        stack size 768, unused 744, usage 24 / 768 (3 %)
+
+ 0x8064740 idle
+        options: 0x1, priority: 15 timeout: 0
+        state: , entry: 0x80550ec
+        stack size 256, unused 232, usage 24 / 256 (9 %)
+
+# Observations
+# - maintenance priority 4 (higher) vs control priority 7 (lower)
+# - Between events both are pending (sem / msgq)
+# - When the timer fires both become ready; maintenance runs first
+# - Stacks are healthy; the delay is scheduling, not stack overflow
